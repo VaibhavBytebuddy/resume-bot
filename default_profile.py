@@ -6,8 +6,8 @@ from models import (
 VAIBHAV_PROFILE = CandidateProfile(
     contact=ContactInfo(
         full_name="Vaibhav Bhadane",
-        email="vaibhav.bhadane@example.com",
-        phone="+91-9876543210",
+        email="vaibhav.bhadane7666@gmail.com",
+        phone="+91-7666359658",
         location="Pune, India",
         linkedin_url="https://linkedin.com/in/vaibhav-bhadane",
         github_url="https://github.com/vaibhav-bhadane",
