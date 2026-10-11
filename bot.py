@@ -27,7 +27,7 @@ user_sessions: Dict[int, dict] = {}
 def get_user_profile(user_id: int) -> CandidateProfile:
     session = user_sessions.setdefault(user_id, {})
     if "profile" not in session:
-        session["profile"] = VAIBHAV_PROFILE
+        session["profile"] = VAIBHAV_PROFILE.model_copy(deep=True)
     return session["profile"]
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -37,10 +37,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👋 Hello {user.first_name}!\n\n"
         "Welcome to **ATS Resume Intelligence Bot**.\n\n"
         "I help you tailor your resume to any specific Job Description to achieve **90%+ ATS Shortlist Rates**.\n\n"
-        "📌 **Available Commands:**\n"
+        "📌 **Resume Tailoring Commands:**\n"
         "• `/profile` - View your loaded master profile & skills\n"
         "• `/match <paste JD>` - Analyze keyword gaps & ATS match score\n"
         "• `/tailor <paste JD>` - Generate an ATS-optimized resume & export PDF\n\n"
+        "⚙️ **Custom Profile (For You or Friends):**\n"
+        "• `/setname <Full Name>` - Update candidate name\n"
+        "• `/setrole <Target Role>` - Update target job title\n"
+        "• `/setskills <skill1, skill2>` - Update your skills\n"
+        "• `/resetprofile` - Reset back to default profile\n"
+        "• *Or upload a `.json` profile file directly to load a complete profile!*\n\n"
         "💡 *Tip:* You can also simply **paste any Job Description directly into this chat**, and I'll analyze it!"
     )
     await update.message.reply_text(welcome_text, parse_mode="Markdown")
@@ -232,6 +238,66 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
             logger.error(f"Error generating PDF: {e}", exc_info=True)
             await wait_msg.edit_text(f"❌ Error generating PDF: {str(e)}")
 
+async def setname_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Sets custom candidate name for this session."""
+    name = " ".join(context.args).strip()
+    if not name:
+        await update.message.reply_text("Usage: `/setname John Doe`", parse_mode="Markdown")
+        return
+    user_id = update.effective_user.id
+    profile = get_user_profile(user_id)
+    profile.contact.full_name = name
+    await update.message.reply_text(f"✅ Candidate name updated to: *{name}*", parse_mode="Markdown")
+
+async def setrole_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Sets custom target role for this session."""
+    role = " ".join(context.args).strip()
+    if not role:
+        await update.message.reply_text("Usage: `/setrole Frontend Developer`", parse_mode="Markdown")
+        return
+    user_id = update.effective_user.id
+    profile = get_user_profile(user_id)
+    profile.target_role = role
+    await update.message.reply_text(f"✅ Target role updated to: *{role}*", parse_mode="Markdown")
+
+async def setskills_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Sets custom skills for this session."""
+    skills_text = " ".join(context.args).strip()
+    if not skills_text:
+        await update.message.reply_text("Usage: `/setskills React, Node.js, Python, PostgreSQL`", parse_mode="Markdown")
+        return
+    skills_list = [s.strip() for s in skills_text.split(",") if s.strip()]
+    user_id = update.effective_user.id
+    profile = get_user_profile(user_id)
+    from models import SkillCategory
+    profile.skills_categorized = [
+        SkillCategory(category_name="Custom Skills", skills=skills_list)
+    ]
+    await update.message.reply_text(f"✅ Skills updated ({len(skills_list)}): {', '.join(skills_list)}", parse_mode="Markdown")
+
+async def resetprofile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Resets profile to default master profile."""
+    user_id = update.effective_user.id
+    user_sessions.setdefault(user_id, {})["profile"] = VAIBHAV_PROFILE.model_copy(deep=True)
+    await update.message.reply_text("✅ Profile reset to default master profile.", parse_mode="Markdown")
+
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles uploaded .json profile files."""
+    doc = update.message.document
+    if doc.file_name and doc.file_name.endswith(".json"):
+        file = await context.bot.get_file(doc.file_id)
+        content_bytes = await file.download_as_bytearray()
+        try:
+            custom_profile = CandidateProfile.model_validate_json(content_bytes)
+            user_id = update.effective_user.id
+            user_sessions.setdefault(user_id, {})["profile"] = custom_profile
+            await update.message.reply_text(
+                f"✅ Profile loaded from `{doc.file_name}` for *{custom_profile.contact.full_name}* ({custom_profile.target_role})!",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            await update.message.reply_text(f"❌ Could not parse JSON profile: {str(e)}")
+
 def main():
     """Runs the Telegram Bot."""
     if not config.TELEGRAM_BOT_TOKEN:
@@ -245,7 +311,12 @@ def main():
     app.add_handler(CommandHandler("profile", profile_command))
     app.add_handler(CommandHandler("match", match_command))
     app.add_handler(CommandHandler("tailor", tailor_command))
+    app.add_handler(CommandHandler("setname", setname_command))
+    app.add_handler(CommandHandler("setrole", setrole_command))
+    app.add_handler(CommandHandler("setskills", setskills_command))
+    app.add_handler(CommandHandler("resetprofile", resetprofile_command))
     app.add_handler(CallbackQueryHandler(handle_callback_query))
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message))
 
     print("🤖 Telegram Resume Bot is active and listening for messages...")

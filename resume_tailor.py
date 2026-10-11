@@ -30,10 +30,15 @@ def reorder_skills_for_jd(profile: CandidateProfile, jd: JobDescriptionAnalysis)
 
 def tailor_summary_heuristic(profile: CandidateProfile, jd: JobDescriptionAnalysis) -> str:
     """Creates a targeted 3-line professional summary emphasizing JD requirements."""
+    title = re.sub(r'^[#*_\-\s]+', '', jd.job_title)
+    title = re.sub(r'^(job\s*title|role|position|title)\s*:\s*', '', title, flags=re.IGNORECASE)
+    title = re.split(r'[*|•\-]|\b(location|experience|exp|yoe|salary)\b', title, flags=re.IGNORECASE)[0].strip(" #*_-:[]()")
+    if not title:
+        title = "Software Engineer"
     top_skills = jd.required_hard_skills[:4]
     skills_phrase = f" specializing in {', '.join(top_skills)}" if top_skills else ""
     return (
-        f"Results-oriented {jd.job_title}{skills_phrase} with ~1.5 years of experience "
+        f"Results-oriented {title}{skills_phrase} with ~1.5 years of experience "
         f"architecting resilient backend microservices, event-driven pipelines, and high-performance APIs. "
         f"Proven track record of optimizing database throughput, implementing structured AI workflows, "
         f"and delivering scalable production systems with high reliability."

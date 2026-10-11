@@ -28,7 +28,12 @@ def parse_jd_heuristic(jd_text: str) -> JobDescriptionAnalysis:
     job_title = "Software Engineer"
     for line in lines[:5]:
         if any(term in line.lower() for term in ["engineer", "developer", "architect", "lead", "specialist"]):
-            job_title = line[:50]
+            clean_title = re.sub(r'^[#*_\-\s]+', '', line)
+            clean_title = re.sub(r'^(job\s*title|role|position|title)\s*:\s*', '', clean_title, flags=re.IGNORECASE)
+            clean_title = re.split(r'[*|•\-]|\b(location|experience|exp|yoe|salary)\b', clean_title, flags=re.IGNORECASE)[0]
+            clean_title = clean_title.strip(" #*_-:[]()")
+            if clean_title:
+                job_title = clean_title[:40]
             break
 
     # Extract bullet points as responsibilities
