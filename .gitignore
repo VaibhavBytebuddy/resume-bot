@@ -1,0 +1,8 @@
+venv/
+.env
+__pycache__/
+*.pyc
+generated_resumes/
+.DS_Store
+local_token.md
+*.token
