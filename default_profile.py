@@ -9,8 +9,8 @@ VAIBHAV_PROFILE = CandidateProfile(
         email="vaibhav.bhadane7666@gmail.com",
         phone="+91-7666359658",
         location="Pune, India",
-        linkedin_url="https://linkedin.com/in/vaibhav-bhadane",
-        github_url="https://github.com/vaibhav-bhadane",
+        linkedin_url="https://www.linkedin.com/in/vaibhavbhadane",
+        github_url="https://github.com/VaibhavBytebuddy",
         portfolio_url="https://vaibhavbhadane.dev"
     ),
     target_role="Full-Stack & Backend Software Engineer",
