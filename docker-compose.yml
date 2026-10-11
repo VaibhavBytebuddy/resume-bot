@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  resume-bot:
+    build: .
+    container_name: resume_bot_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./generated_resumes:/app/generated_resumes
