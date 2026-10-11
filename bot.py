@@ -1,4 +1,6 @@
 import os
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 import logging
 from typing import Dict
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -298,8 +300,25 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             await update.message.reply_text(f"❌ Could not parse JSON profile: {str(e)}")
 
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, format, *args):
+        pass
+
+def start_health_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    server.serve_forever()
+
 def main():
     """Runs the Telegram Bot."""
+    # Start background HTTP health server for Render Free Web Service
+    threading.Thread(target=start_health_server, daemon=True).start()
+
     if not config.TELEGRAM_BOT_TOKEN:
         print("[!] TELEGRAM_BOT_TOKEN not configured in .env. Bot cannot start without token.")
         print("[i] You can still test resume generation using python cli_runner.py!")
